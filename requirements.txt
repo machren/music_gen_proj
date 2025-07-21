@@ -1,0 +1,11 @@
+numpy
+pandas
+pretty_midi
+torch
+torchvision
+librosa
+matplotlib
+joblib
+scipy
+Pillow
+mir_eval
