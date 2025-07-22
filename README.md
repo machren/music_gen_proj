@@ -34,20 +34,23 @@ Follow these steps to set up and run the project locally.
 
 ```bash
 git clone <your-repository-url>
-cd <repository-name>```
+cd <repository-name>
+```
 
 ### 2. Create a Virtual Environment (Recommended)
 
-Bash
+```bash
 python3 -m venv venv
 source venv/bin/activate
+```
 
 ### 3. Install Dependencies
 
 Install all the required libraries using the requirements.txt file.
 
-Bash
+```bash
 pip install -r requirements.txt
+```
 
 ### 4. Download the Dataset
 
@@ -88,9 +91,10 @@ METADATA_FILE = 'maestro-v3.0.0/maestro-v3.0.0.csv'
 
 Execute the main.py script to start the data preprocessing and model training.
 
-Bash
+```bash
 python3 main.py
 The script will first process all MIDI files and save them as NumPy arrays in the melody_matrices directory. After that, it will begin training the GAN and VAE models.
+```
 
 ### 3. View the Output
 
