@@ -5,9 +5,14 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 
+from torch.utils.tensorboard import SummaryWriter
+import os
+
 import config
 
-def train_gan(netD, netG, train_loader, n_epochs, z_dim, device):  
+def train_gan(netD, netG, train_loader, n_epochs, z_dim, device):
+    writer = SummaryWriter(log_dir=os.path.join(config.LOG_DIR, 'gan'))
+
     criterion = nn.BCELoss()
     optimizerD = optim.Adam(netD.parameters(), lr=config.LR, betas=(config.BETA1, config.BETA2))
     optimizerG = optim.Adam(netG.parameters(), lr=config.LR, betas=(config.BETA1, config.BETA2))
@@ -22,13 +27,16 @@ def train_gan(netD, netG, train_loader, n_epochs, z_dim, device):
     netD = netD.float()
     netG = netG.float()
 
+    global_step = 0
+
     for epoch in range(n_epochs):
+        print(f"\n[Epoch {epoch + 1}/{n_epochs}]")
         for i, data in enumerate(train_loader, 0):
-            # Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             netD.zero_grad()
             real_cpu = data[0].to(device) if isinstance(data, list) else data.to(device)
             b_size = real_cpu.size(0)
             label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
+
             output = netD(real_cpu).view(-1)
             errD_real = criterion(output, label)
             errD_real.backward()
@@ -41,7 +49,6 @@ def train_gan(netD, netG, train_loader, n_epochs, z_dim, device):
             errD_fake.backward()
             optimizerD.step()
 
-            # Update G network: maximize log(D(G(z)))
             netG.zero_grad()
             label.fill_(real_label)
             output = netD(fake).view(-1)
@@ -49,16 +56,28 @@ def train_gan(netD, netG, train_loader, n_epochs, z_dim, device):
             errG.backward()
             optimizerG.step()
 
-            # Save losses for analysis
+            D_total = errD_real.item() + errD_fake.item()
             G_losses.append(errG.item())
-            D_losses.append(errD_real.item() + errD_fake.item())
+            D_losses.append(D_total)
 
-            # Save generator output periodically
+            # Log per iteration
+            writer.add_scalar("GAN/Discriminator Loss", D_total, global_step)
+            writer.add_scalar("GAN/Generator Loss", errG.item(), global_step)
+            global_step += 1
+
+            if i % 50 == 0:
+                print(f"  [Batch {i}/{len(train_loader)}]  D_loss: {D_total:.4f}  G_loss: {errG.item():.4f}")
+
             if (i % 500 == 0) or ((epoch == n_epochs-1) and (i == len(train_loader)-1)):
                 with torch.no_grad():
                     fake = netG(fixed_noise).detach().cpu()
-                normalized_fake = (fake[0] - fake[0].min()) / (fake[0].max() - fake[0].min())
-                img_list.append(transforms.ToPILImage()(normalized_fake))
+                img_grid = (fake[:16] + 1) / 2  # Rescale [-1,1] → [0,1]
+                writer.add_images("GAN/Samples", img_grid, global_step)
+
+        writer.add_scalar("GAN/Avg D Loss (epoch)", sum(D_losses[-len(train_loader):]) / len(train_loader), epoch)
+        writer.add_scalar("GAN/Avg G Loss (epoch)", sum(G_losses[-len(train_loader):]) / len(train_loader), epoch)
+
+    writer.close()
     return D_losses, G_losses, img_list
 
 def vae_loss(x, x_hat, mean, logvar):
