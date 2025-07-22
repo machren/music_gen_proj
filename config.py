@@ -1,9 +1,9 @@
 # config.py
 
 # --- Directories ---
-GIVEN_DATA_DIR = '/home/ubuntu/music_gen_proj/maestro-v3.0.0'
-DATASET_DIR = '~/big_drive/melody_matrices'
-METADATA_FILE = '/home/ubuntu/music_gen_proj/maestro-v3.0.0/maestro-v3.0.0.csv'
+GIVEN_DATA_DIR = '/workspace/maestro-v3.0.0'
+DATASET_DIR = 'workspace/melody_matrices'
+METADATA_FILE = '/workspace/maestro-v3.0.0/maestro-v3.0.0.csv'
 GENERATED_IMAGES_DIR = 'generated_images'
 GENERATED_MUSIC_DIR = 'generated_music'
 
