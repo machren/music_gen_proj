@@ -57,14 +57,14 @@ pip install -r requirements.txt
 Download the MAESTRO v3.0.0 dataset from the official website. Unzip the folder and place it in the project's root directory.
 
 Your project structure should look like this:
-
+```arduino
 your-project/
 ├── maestro-v3.0.0/
 │   └── ... (dataset files)
 ├── config.py
 ├── main.py
 └── ... (other project files)
-
+```
 *** 
 
 ## Usage
@@ -73,9 +73,9 @@ your-project/
 
 Before running, open the config.py file and verify that all the paths match your directory structure.
 
-Python
+```python
 
-`config.py`
+# config.py
 
 --- Directories ---
 
@@ -85,7 +85,7 @@ DATASET_DIR = 'melody_matrices'
 
 METADATA_FILE = 'maestro-v3.0.0/maestro-v3.0.0.csv'
 
-...
+```
 
 ### 2. Run the Main Script
 
@@ -93,8 +93,10 @@ Execute the main.py script to start the data preprocessing and model training.
 
 ```bash
 python3 main.py
-The script will first process all MIDI files and save them as NumPy arrays in the melody_matrices directory. After that, it will begin training the GAN and VAE models.
 ```
+
+The script will first process all MIDI files and save them as NumPy arrays in the melody_matrices directory. After that, it will begin training the GAN and VAE models.
+
 
 ### 3. View the Output
 
