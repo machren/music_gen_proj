@@ -33,7 +33,7 @@ Follow these steps to set up and run the project locally.
 ### 1. Clone the Repository
 
 ```bash
-git clone [music_gen_proj](https://github.com/machren/music_gen_proj/)
+git clone https://github.com/machren/music_gen_proj
 cd music_gen_proj
 ```
 
