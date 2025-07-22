@@ -6,7 +6,7 @@ DATASET_DIR = 'workspace/melody_matrices'
 METADATA_FILE = '/workspace/maestro-v3.0.0/maestro-v3.0.0.csv'
 GENERATED_IMAGES_DIR = 'generated_images'
 GENERATED_MUSIC_DIR = 'generated_music'
-
+LOG_DIR = '/workspace/logs'
 
 # --- Data Preprocessing ---
 FS = 100
