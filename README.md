@@ -56,27 +56,36 @@ Download the MAESTRO v3.0.0 dataset from the official website. Unzip the folder 
 Your project structure should look like this:
 
 your-project/
-├── maestro-v3.0.0/
-│   └── ... (dataset files)
-├── config.py
-├── main.py
-└── ... (other project files)
-Usage
 
-## 1. Configure Paths
+├── maestro-v3.0.0/
+
+│   └── ... (dataset files)
+
+├── config.py
+
+├── main.py
+
+└── ... (other project files)
+
+### Usage
+
+*** 
+
+#### 1. Configure Paths
 
 Before running, open the config.py file and verify that all the paths match your directory structure.
 
 Python
-# config.py
 
-# --- Directories ---
+`config.py`
+
+--- Directories ---
 GIVEN_DATA_DIR = 'maestro-v3.0.0'
 DATASET_DIR = 'melody_matrices'
 METADATA_FILE = 'maestro-v3.0.0/maestro-v3.0.0.csv'
-# ...
+...
 
-## 2. Run the Main Script
+#### 2. Run the Main Script
 
 Execute the main.py script to start the data preprocessing and model training.
 
@@ -84,7 +93,7 @@ Bash
 python3 main.py
 The script will first process all MIDI files and save them as NumPy arrays in the melody_matrices directory. After that, it will begin training the GAN and VAE models.
 
-## 3. View the Output
+#### 3. View the Output
 
 Generated Images: Images of generated piano rolls will be saved in the generated_images/ directory.
 
