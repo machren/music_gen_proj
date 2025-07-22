@@ -87,31 +87,35 @@ def vae_loss(x, x_hat, mean, logvar):
     return BCE + KLD
 
 def train_vae(vae, train_loader, n_epochs, device):
+    writer = SummaryWriter(log_dir=os.path.join(config.LOG_DIR, 'vae'))
     optimizer_vae = optim.Adam(vae.parameters(), lr=config.LR)
     losses = []
+
+    global_step = 0
+
     for epoch in range(n_epochs):
+        epoch_loss = 0
+        print(f"\n[Epoch {epoch + 1}/{n_epochs}]")
         for i, data in enumerate(train_loader, 0):
-            # Load data and move to device
             x = data.to(device)
-            
-            # Reset gradients
             optimizer_vae.zero_grad()
-            
-            # Forward pass through VAE
             x_hat, mean, logvar = vae(x)
-            
-            # Compute loss
             loss = vae_loss(x, x_hat, mean, logvar)
-            
-            # Backpropagate and update weights
             loss.backward()
             optimizer_vae.step()
-            
-            # Record loss
+
             losses.append(loss.item())
-            
-            # Print progress periodically
-            if i % 100 == 0:
-                print(f'Epoch: {epoch+1}/{n_epochs}, Loss: {loss.item()/len(data):.4f}')
-            pass
+            epoch_loss += loss.item()
+
+            writer.add_scalar("VAE/Loss", loss.item(), global_step)
+            global_step += 1
+
+            if i % 50 == 0:
+                print(f"  [Batch {i}/{len(train_loader)}]  Batch Loss: {loss.item() / len(data):.4f}")
+        
+        avg_epoch_loss = epoch_loss / len(train_loader.dataset)
+        writer.add_scalar("VAE/Avg Epoch Loss", avg_epoch_loss, epoch)
+        print(f"Epoch {epoch + 1} complete — Avg Loss: {avg_epoch_loss:.4f}")
+
+    writer.close()
     return losses
