@@ -29,7 +29,7 @@ class Generator(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self, n_channels, n_features):
         super(Discriminator, self).__init__()
-        self.main = nn.Sequential(
+        self.features = nn.Sequential(
             nn.Conv2d(n_channels, n_features, (6, 4), (2, 4), (1, 1), bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(n_features, n_features * 2, (5, 4), (3, 2), (1, 1), bias=False),
@@ -40,13 +40,19 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(n_features * 4, n_features * 8, (4, 4), (2, 2), (1, 1), bias=False),
             nn.BatchNorm2d(n_features * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(n_features * 8, 1, 4, 1, 0, bias=False),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+        self.classifier = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),  
+            nn.Flatten(),             
+            nn.Linear(n_features * 8, 1),
             nn.Sigmoid()
         )
 
-    def forward(self, input):
-        return self.main(input)
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return x.view(-1)
 
 
 class VAE(nn.Module):
