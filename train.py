@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
+import torch.nn.functional as F
 
 from torch.utils.tensorboard import SummaryWriter
 import os
@@ -60,7 +61,6 @@ def train_gan(netD, netG, train_loader, n_epochs, z_dim, device):
             G_losses.append(errG.item())
             D_losses.append(D_total)
 
-            # Log per iteration
             writer.add_scalar("GAN/Discriminator Loss", D_total, global_step)
             writer.add_scalar("GAN/Generator Loss", errG.item(), global_step)
             global_step += 1
@@ -78,12 +78,19 @@ def train_gan(netD, netG, train_loader, n_epochs, z_dim, device):
         writer.add_scalar("GAN/Avg G Loss (epoch)", sum(G_losses[-len(train_loader):]) / len(train_loader), epoch)
 
     writer.close()
+    
+    # Save trained GAN
+    os.makedirs(config.MOD_DIR, exist_ok=True)
+    torch.save(netG.state_dict(), os.path.join(config.MOD_DIR, 'gan_generator.pth'))
+    torch.save(netD.state_dict(), os.path.join(config.MOD_DIR, 'gan_discriminator.pth'))
+    print("GAN models saved.")
+    
     return D_losses, G_losses, img_list
 
-def vae_loss(x, x_hat, mean, logvar):
-    bce = nn.BCELoss(reduction='sum')
-    BCE = bce(x_hat, x)
-    KLD = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
+
+def vae_loss(x_hat, x, mean, logvar):
+    BCE = F.mse_loss(x_hat, x, reduction='mean')
+    KLD = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp(), dim=1).mean()
     return BCE + KLD
 
 def train_vae(vae, train_loader, n_epochs, device):
@@ -100,12 +107,20 @@ def train_vae(vae, train_loader, n_epochs, device):
             x = data.to(device)
             optimizer_vae.zero_grad()
             x_hat, mean, logvar = vae(x)
+            
+            if x_hat.shape != x.shape:
+                x_hat = F.interpolate(x_hat, size=x.shape[2:], mode='bilinear', align_corners=False)
+                
             loss = vae_loss(x, x_hat, mean, logvar)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(vae.parameters(), max_norm=1.0) # To prevent loss exploding
             optimizer_vae.step()
 
             losses.append(loss.item())
             epoch_loss += loss.item()
+            
+            # DEBUGGING PRINT
+            # print(f"x_hat logits — min: {x_hat.min().item():.2f}, max: {x_hat.max().item():.2f}")
 
             writer.add_scalar("VAE/Loss", loss.item(), global_step)
             global_step += 1
@@ -118,4 +133,10 @@ def train_vae(vae, train_loader, n_epochs, device):
         print(f"Epoch {epoch + 1} complete — Avg Loss: {avg_epoch_loss:.4f}")
 
     writer.close()
+
+    # Save trained VAE
+    os.makedirs(config.MOD_DIR, exist_ok=True)
+    torch.save(vae.state_dict(), os.path.join(config.MOD_DIR, 'vae_model.pth'))
+    print("VAE model saved.")
+    
     return losses
