@@ -27,25 +27,27 @@ The project is organized into several Python files, each with a specific purpose
 
 ```arduino
 your-project/
-├── maestro-v3.0.0/ # Raw MAESTRO dataset files
-├── melody_matrices/ # Preprocessed piano roll chunks saved as .npy
-├── generated_images/ # Generated piano roll images by model
+├── maestro-v3.0.0/         # Raw MAESTRO dataset files
+├── melody_matrices/        # Preprocessed piano roll chunks saved as .npy
+├── generated_images/       # Generated piano roll images by model
 │ ├── gan/
 │ ├── vae/
 │ └── vae-gan/
-├── generated_music/ # Generated MIDI files by model
+├── generated_music/        # Generated MIDI files by model
 │ ├── gan/
 │ ├── vae/
 │ └── vae-gan/
-├── config.py # Project configuration and hyperparameters
-├── main.py # Main script for preprocessing, training, evaluation
-├── data_preprocessing.py # MIDI to piano roll conversion and Dataset classes
-├── models.py # GAN, VAE, and VAE-GAN neural network architectures
-├── train.py # Training loops for all models
-├── evaluation.py # FID and other evaluation metrics
-├── visualization.py # Plotting and piano roll visualization utilities
-├── requirements.txt # Python dependencies
-└── README.md # This file
+├── config.py               # Project configuration and hyperparameters
+├── main.py                 # Main script for preprocessing, training, evaluation
+├── data_preprocessing.py   # MIDI to piano roll conversion and Dataset classes
+├── models.py               # GAN, VAE, and VAE-GAN neural network architectures
+├── train.py                # Training loops for GAE and VAE
+├── train_vae_gan.py        # Training loops for VAE-GAN
+├── evaluation.py           # FID and other evaluation metrics
+├── evaluation.py           # Generating piano rolls and MIDI files
+├── visualization.py        # Plotting and piano roll visualization utilities
+├── requirements.txt        # Python dependencies
+└── README.md               # This file
 ```
 
 ***
