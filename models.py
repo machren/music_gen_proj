@@ -1,6 +1,8 @@
 # models.py
 
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class Generator(nn.Module):
     def __init__(self, z_dim, n_features, n_channels):
@@ -48,16 +50,17 @@ class Discriminator(nn.Module):
             nn.Linear(n_features * 8, 1),
             nn.Sigmoid()
         )
-
+        
     def forward(self, x):
         x = self.features(x)
         x = self.classifier(x)
         return x.view(-1)
 
-
+        
 class VAE(nn.Module):
     def __init__(self, n_channels, n_features, z_dim):
         super(VAE, self).__init__()
+
         # --- Encoder ---
         self.enc_conv1 = nn.Conv2d(n_channels, n_features, kernel_size=(6, 4), stride=(2, 4), padding=(1, 1))
         self.enc_conv2 = nn.Conv2d(n_features, n_features*2, kernel_size=(5, 4), stride=(3, 2), padding=(1, 1))
@@ -65,6 +68,7 @@ class VAE(nn.Module):
         self.enc_conv4 = nn.Conv2d(n_features*4, n_features*8, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
         self.enc_mean = nn.Linear(n_features*8*4*2, z_dim)
         self.enc_logvar = nn.Linear(n_features*8*4*2, z_dim)
+        
         # --- Decoder ---
         self.dec_lin1 = nn.Linear(z_dim, n_features*8*4*2)
         self.dec_conv1 = nn.ConvTranspose2d(n_features*8, n_features*4, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
@@ -85,6 +89,7 @@ class VAE(nn.Module):
         x = x.view(x.size(0), -1)
         mean = self.enc_mean(x)
         logvar = self.enc_logvar(x)
+        logvar = torch.clamp(logvar, min=-10, max=10) # To prevent loss explotion
         return mean, logvar
 
     def decode(self, z):
@@ -93,7 +98,7 @@ class VAE(nn.Module):
         x = F.relu(self.dec_conv1(x))
         x = F.relu(self.dec_conv2(x))
         x = F.relu(self.dec_conv3(x))
-        x = torch.sigmoid(self.dec_conv4(x))
+        x = self.dec_conv4(x)
         return x
 
     def forward(self, x):
