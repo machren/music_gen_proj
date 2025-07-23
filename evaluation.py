@@ -1,5 +1,6 @@
 # evaluation.py
 
+import os
 import numpy as np
 from scipy.linalg import sqrtm
 import torch
@@ -22,8 +23,12 @@ def get_activations(loader, model, device):
     activations = []
     for data in loader:
         x = data.to(device)
+        if x.shape[1] == 1:
+            x = x.repeat(1, 3, 1, 1)
+        x = torch.nn.functional.interpolate(x, size=(299, 299), mode='bilinear')  # Resize for Inception
         act = model(x).detach().cpu().numpy()
-        activations.append(act)
+    activations.append(act)
+
     return np.concatenate(activations, axis=0)
 
 def get_activations_vae(vae, model, z_dim, n_samples, device):
@@ -34,6 +39,8 @@ def get_activations_vae(vae, model, z_dim, n_samples, device):
     for i in range(n_samples):
         z = torch.randn(1, z_dim).to(device)  # Generate random latent vector
         piano_roll = vae.decode(z)  # Decode latent vector to piano roll
+        piano_roll = piano_roll.repeat(1, 3, 1, 1)  # Make RGB
+        piano_roll = torch.nn.functional.interpolate(piano_roll, size=(299, 299), mode='bilinear')
         act = model(piano_roll).detach().cpu().numpy()  # Get activations
         activations.append(act)
     return np.concatenate(activations, axis=0)
@@ -51,3 +58,16 @@ def inception_score(p_yx, eps=1E-16):
     avg_kl_d = np.mean(kl_d.sum(axis=1))
     # Return the exponential of the average KL divergence
     return np.exp(avg_kl_d)
+
+def get_predicted_probs(vae, inception_model, z_dim, n_samples, device):
+    probs = []
+    for _ in range(n_samples):
+        z = torch.randn(1, z_dim).to(device)
+        with torch.no_grad():
+            piano_roll = vae.decode(z)
+            piano_roll = piano_roll.repeat(1, 3, 1, 1)
+            piano_roll = torch.nn.functional.interpolate(piano_roll, size=(299, 299), mode='bilinear')
+            logits = inception_model(piano_roll)
+            p = torch.nn.functional.softmax(logits, dim=1).cpu().numpy()
+        probs.append(p)
+    return np.vstack(probs)
