@@ -9,6 +9,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
+from torch.utils.data import Subset
+import random
+
 import config
 
 def get_piano_roll(pm, pedal_threshold=64):
@@ -39,7 +42,7 @@ def get_piano_roll(pm, pedal_threshold=64):
         return None, None
 
 
-def prepare_dataset(filenames, metadata, dataset_dir, make_dir=True, fs=100, pitch_range=[24, 96], chunk_size=128):
+def prepare_dataset(filenames, metadata, dataset_dir, make_dir=True, fs=25, pitch_range=[24, 96], chunk_size=128):
     '''
     Creates a dataset of piano roll chunks and saves them as numpy arrays.
     '''
@@ -79,13 +82,12 @@ def prepare_dataset(filenames, metadata, dataset_dir, make_dir=True, fs=100, pit
             n_chunks = piano_roll.shape[1] // chunk_size
 
             for i in range(n_chunks):
-                chunk = piano_roll[:, i * chunk_size:(i + 1) * chunk_size]
+                chunk = piano_roll[:, i * chunk_size:(i + 1) * chunk_size].astype(np.float32)
                 save_path = os.path.join(dataset_dir, split, f"{os.path.splitext(base_name)[0]}_{i}.npy")
                 np.save(save_path, chunk)
 
         except (OSError, IOError) as e:
             print(f"Stopping data preparation due to file system error: {e}")
-            # Stop the whole process if we can't write to disk
             return
         except Exception as e:
             print(f"Failed to process {f}: {e}")
@@ -100,7 +102,6 @@ class PianoRollDataset(Dataset):
         return len(self.filenames)
 
     def __getitem__(self, idx):
-        # Gracefully handle corrupted or empty files
         try:
             piano_roll = np.load(self.filenames[idx])
             # Check if the file is empty
@@ -119,17 +120,31 @@ def collate_fn_filter_none(batch):
     return torch.utils.data.dataloader.default_collate(batch) if batch else (None, None)
 
 
-def get_dataloaders():
+def get_dataloaders(fraction=1.0):
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5], std=[0.5])
+        #transforms.Normalize(mean=[0.5], std=[0.5])
     ])
 
+    # Load full datasets
     train_dataset = PianoRollDataset(os.path.join(config.DATASET_DIR, 'train'), transform=transform)
     test_dataset = PianoRollDataset(os.path.join(config.DATASET_DIR, 'test'), transform=transform)
     validation_dataset = PianoRollDataset(os.path.join(config.DATASET_DIR, 'validation'), transform=transform)
 
-    # Use the custom collate_fn to filter out bad samples
+    # If fraction < 1.0, take a subset of each
+    def get_subset(dataset):
+        if fraction >= 1.0:
+            return dataset
+        n = len(dataset)
+        subset_size = int(fraction * n)
+        indices = random.sample(range(n), subset_size)
+        return Subset(dataset, indices)
+
+    train_dataset = get_subset(train_dataset)
+    test_dataset = get_subset(test_dataset)
+    validation_dataset = get_subset(validation_dataset)
+
+    # Dataloaders
     train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, collate_fn=collate_fn_filter_none)
     test_loader = DataLoader(test_dataset, batch_size=config.BATCH_SIZE, shuffle=True, collate_fn=collate_fn_filter_none)
     validation_loader = DataLoader(validation_dataset, batch_size=config.BATCH_SIZE, shuffle=True, collate_fn=collate_fn_filter_none)
