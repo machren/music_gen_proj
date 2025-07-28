@@ -56,9 +56,10 @@ def main():
         visualization.save_images(img_list, save_dir)
         print("GAN training complete. Images saved.")
 
-        # --- Evaluation and Generation for GAN (optional, placeholder logic) ---
-        print("\nSkipping generation/evaluation for GAN. You can implement it later.")
+        # --- Evaluation and Generation for GAN ---
 
+        evaluate_and_generate(netG, model_type="gan", z_dim=config.Z_DIM_VAE, device=device, train_loader=train_loader)
+    
     elif train_mode == "vae":
         # --- 4. Train VAE ---
         print("\n--- Training VAE ---")
@@ -73,7 +74,7 @@ def main():
         vae, disc = train_vae_gan(vae, netD, train_loader, config.N_EPOCHS, device)
         print("VAE-GAN training complete.")
 
-        evaluate_and_generate(vae, model_type="vae_gan", z_dim=config.Z_DIM_VAE, device=device, train_loader=train_loader)
+        evaluate_and_generate(vae, model_type="vae_gan", z_dim=config.Z_DIM, device=device, train_loader=train_loader)
 
     else:
         raise ValueError(f"Unsupported TRAIN_MODE: {train_mode}")
@@ -90,14 +91,14 @@ def evaluate_and_generate(vae_model, model_type, z_dim, device, train_loader):
     real_activations = evaluation.get_activations(train_loader, inception_model, device)
 
     print("Calculating generated activations...")
-    gen_activations = evaluation.get_activations_vae(
-        vae_model, inception_model, z_dim, config.N_SAMPLES, device
+    gen_activations = evaluation.get_activations_generic(
+        vae_model, inception_model, z_dim, config.N_SAMPLES, device, model_type
     )
 
     fid = evaluation.calculate_fid(real_activations, gen_activations)
     print(f"FID score: {fid:.4f}")
 
-    p_yx = evaluation.get_predicted_probs(vae_model, inception_model, z_dim, config.N_SAMPLES, device)
+    p_yx = evaluation.get_predicted_probs(vae_model, inception_model, z_dim, config.N_SAMPLES, device, model_type)
     is_score = evaluation.inception_score(p_yx)
     print(f"Inception Score: {is_score:.4f}")
 
@@ -106,7 +107,7 @@ def evaluate_and_generate(vae_model, model_type, z_dim, device, train_loader):
     gen_roll_dir = os.path.join(config.GENERATED_ROLLS_DIR, model_type)
     gen_midi_dir = os.path.join(config.GENERATED_MIDI_DIR, model_type)
 
-    generation.save_generated_piano_rolls(vae_model, z_dim, config.N_SAMPLES, device, gen_roll_dir)
+    generation.save_generated_piano_rolls(vae_model, z_dim, config.N_SAMPLES, device, gen_roll_dir, model_type)
     generation.convert_saved_piano_rolls_to_midis(gen_roll_dir, gen_midi_dir, config.FS)
 
     print(f"Generated piano rolls saved to: {gen_roll_dir}")
