@@ -31,19 +31,31 @@ def get_activations(loader, model, device):
 
     return np.concatenate(activations, axis=0)
 
-def get_activations_vae(vae, model, z_dim, n_samples, device):
-    """
-    Extract activations from a VAE-generated dataset.
-    """
-    activations = []
-    for i in range(n_samples):
-        z = torch.randn(1, z_dim).to(device)  # Generate random latent vector
-        piano_roll = vae.decode(z)  # Decode latent vector to piano roll
-        piano_roll = piano_roll.repeat(1, 3, 1, 1)  # Make RGB
-        piano_roll = torch.nn.functional.interpolate(piano_roll, size=(299, 299), mode='bilinear')
-        act = model(piano_roll).detach().cpu().numpy()  # Get activations
-        activations.append(act)
-    return np.concatenate(activations, axis=0)
+def get_activations_generic(model, inception_model, z_dim, n_samples, device, model_type):
+    model.eval()
+    all_activations = []
+
+    for _ in range(n_samples):
+
+        if model_type in ("vae", "vae_gan"):
+            z = torch.randn(1, z_dim).to(device)
+            x_gen = model.decode(z)
+            
+        elif model_type == "gan":
+            z = torch.randn(1, z_dim, 1, 1).to(device)
+            x_gen = model(z)
+            
+        else:
+            raise ValueError(f"Unknown model type: {model_type}")
+
+        #x_gen = x_gen.to(device)
+        x_gen = x_gen.repeat(1, 3, 1, 1)
+        x_gen = torch.nn.functional.interpolate(x_gen, size=(299, 299), mode='bilinear')  # for Inception v3
+        act = inception_model(x_gen).detach().cpu().numpy()
+        all_activations.append(act)
+
+    return np.concatenate(all_activations, axis=0)
+
 
 def inception_score(p_yx, eps=1E-16):
     """
@@ -59,12 +71,21 @@ def inception_score(p_yx, eps=1E-16):
     # Return the exponential of the average KL divergence
     return np.exp(avg_kl_d)
 
-def get_predicted_probs(vae, inception_model, z_dim, n_samples, device):
+def get_predicted_probs(vae, inception_model, z_dim, n_samples, device, model_type):
     probs = []
     for _ in range(n_samples):
-        z = torch.randn(1, z_dim).to(device)
+        
+        if model_type in ("vae", "vae_gan"):
+            z = torch.randn(1, z_dim).to(device)
+            x_gen = vae.decode(z)
+        elif model_type == "gan":
+            z = torch.randn(1, z_dim, 1, 1).to(device)
+            x_gen = vae(z)
+        else:
+            raise ValueError(f"Unknown model type: {model_type}")
+        
         with torch.no_grad():
-            piano_roll = vae.decode(z)
+            piano_roll = x_gen
             piano_roll = piano_roll.repeat(1, 3, 1, 1)
             piano_roll = torch.nn.functional.interpolate(piano_roll, size=(299, 299), mode='bilinear')
             logits = inception_model(piano_roll)
