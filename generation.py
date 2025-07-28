@@ -61,10 +61,21 @@ def convert_saved_piano_rolls_to_midis(piano_roll_dir, midi_dir, fs=4):
             midi_path = os.path.join(midi_dir, midi_filename)
             midi.write(midi_path)
 
-def save_generated_piano_rolls(vae, z_dim, n_samples, device, save_dir):
+def save_generated_piano_rolls(vae, z_dim, n_samples, device, save_dir, model_type):
     os.makedirs(save_dir, exist_ok=True)
     for i in range(n_samples):
-        z = torch.randn(1, z_dim).to(device)
+        
+        if model_type in ("vae", "vae_gan"):
+            z = torch.randn(1, z_dim).to(device)
+            x_gen = vae.decode(z)
+            
+        elif model_type == "gan":
+            z = torch.randn(1, z_dim, 1, 1).to(device)
+            x_gen = vae(z)
+            
+        else:
+            raise ValueError(f"Unknown model type: {model_type}")
+        
         with torch.no_grad():
-            piano_roll = vae.decode(z).cpu().numpy()
+            piano_roll = x_gen.cpu().numpy()
         np.save(os.path.join(save_dir, f'piano_roll_{i}.npy'), piano_roll)
