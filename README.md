@@ -1,8 +1,8 @@
-# AI Music Generation with GANs, VAEs, and VAE-GANs
+# AI Music Generation with DCGAN, VAE, and VAE-GAN models
 
 This project uses deep learning models to generate polyphonic piano music. It implements three advanced generative architectures:
 
-- **GAN** (Generative Adversarial Network)
+- **DCGAN** (Deep Convolutional Generative Adversarial Network)
 - **VAE** (Variational Autoencoder)
 - **VAE-GAN** (a hybrid model combining VAE and GAN advantages)
 
